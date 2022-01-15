@@ -1,0 +1,43 @@
+{
+  "name": "koishi-plugin-achievement",
+  "version": "1.0.0-rc.0",
+  "description": "Achievement System for Koishi",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "engines": {
+    "node": ">=14.6.0"
+  },
+  "files": [
+    "lib"
+  ],
+  "license": "MIT",
+  "author": "Shigma <shigma10826@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/koishijs/koishi-plugin-achievement.git"
+  },
+  "bugs": {
+    "url": "https://github.com/koishijs/koishi-plugin-achievement/issues"
+  },
+  "homepage": "https://github.com/koishijs/koishi-plugin-achievement",
+  "keywords": [
+    "bot",
+    "qqbot",
+    "cqhttp",
+    "coolq",
+    "chatbot",
+    "koishi",
+    "plugin",
+    "achievement"
+  ],
+  "peerDependencies": {
+    "koishi": "^4.0.0"
+  },
+  "devDependencies": {
+    "@koishijs/plugin-database-memory": "^1.0.0",
+    "@koishijs/plugin-mock": "^1.0.0"
+  },
+  "dependencies": {
+    "@koishijs/command-utils": "^1.0.0"
+  }
+}
