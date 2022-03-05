@@ -1,6 +1,6 @@
 {
   "name": "koishi-plugin-achievement",
-  "version": "1.0.0-rc.0",
+  "version": "1.0.0-rc.1",
   "description": "Achievement System for Koishi",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -22,22 +22,21 @@
   "homepage": "https://github.com/koishijs/koishi-plugin-achievement",
   "keywords": [
     "bot",
-    "qqbot",
-    "cqhttp",
-    "coolq",
     "chatbot",
     "koishi",
     "plugin",
-    "achievement"
+    "achievement",
+    "required:database",
+    "impl:achv"
   ],
   "peerDependencies": {
-    "koishi": "^4.0.0"
+    "koishi": "^4.4.0"
   },
   "devDependencies": {
-    "@koishijs/plugin-database-memory": "^1.0.0",
-    "@koishijs/plugin-mock": "^1.0.0"
+    "@koishijs/plugin-database-memory": "^1.0.2",
+    "@koishijs/plugin-mock": "^1.0.3"
   },
   "dependencies": {
-    "@koishijs/command-utils": "^1.0.0"
+    "@koishijs/helpers": "^1.0.0"
   }
 }

@@ -1,5 +1,5 @@
 import { Context, defineProperty, Dict, difference, makeArray, Query, Schema, Service, Session, union, User } from 'koishi'
-import { adminUser } from '@koishijs/command-utils'
+import { adminUser } from '@koishijs/helpers'
 
 declare module 'koishi' {
   interface Session {
