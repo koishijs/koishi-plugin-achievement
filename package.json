@@ -10,8 +10,8 @@
   "files": [
     "lib"
   ],
-  "license": "MIT",
   "author": "Shigma <shigma10826@gmail.com>",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/koishijs/koishi-plugin-achievement.git"
@@ -20,6 +20,9 @@
     "url": "https://github.com/koishijs/koishi-plugin-achievement/issues"
   },
   "homepage": "https://github.com/koishijs/koishi-plugin-achievement",
+  "scripts": {
+    "build": "tsc -b"
+  },
   "keywords": [
     "bot",
     "chatbot",
@@ -27,7 +30,7 @@
     "plugin",
     "achievement",
     "required:database",
-    "impl:achv"
+    "impl:achievement"
   ],
   "peerDependencies": {
     "koishi": "^4.4.0"
