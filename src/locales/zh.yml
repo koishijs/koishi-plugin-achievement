@@ -1,0 +1,14 @@
+commands:
+  achievement:
+    description: 成就信息
+    options:
+      achieved: 显示已获得的成就
+      unachieved: 显示未获得的成就
+      full: 显示全部成就
+      forced: 强制查看
+      set: 添加成就
+      unset: 删除成就
+    messages:
+      not-found: 没有找到成就「{0}」。
+      prolog: '{0}，您已获得 {1}/{2} 个成就，奖励好感度：{3}'
+      epilog: 要查看特定的分类，请输入“achv 分类名”。

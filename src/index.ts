@@ -8,7 +8,7 @@ declare module 'koishi' {
 
   namespace Context {
     interface Services {
-      achv: AchvService
+      achievements: AchvService
     }
   }
 
@@ -27,10 +27,11 @@ export const name = 'achievement'
 export const using = ['database'] as const
 
 export interface Config {
-  filter?: Query.Expr<User>
+  category?: boolean
+  countFilter?: Query.Expr<User>
 }
 
-export const Config = Schema.object({
+export const Config: Schema<Config> = Schema.object({
 })
 
 const levelName = 'ⅠⅡⅢⅣⅤ'
@@ -42,6 +43,7 @@ interface Achievement<T extends User.Field = never> {
   desc: string | string[]
   descHidden?: string
   affinity: number
+  /** @deprecated */
   count?: number
   progress?: (user: Pick<User, T>) => number
   hidden?: true | ((user: Pick<User, T>) => boolean)
@@ -56,8 +58,8 @@ interface Category {
 Session.prototype.achieve = function (this: Session<User.Field>, id, hints, achieve = true) {
   const { user, app } = this
   if (!achieve || user.achievement.includes(id)) return
-  const achv = this.app.achv.data[id]
-  const currentLevel = this.app.achv.getLevel(user, achv)
+  const achv = this.app.achievements.data[id]
+  const currentLevel = this.app.achievements.getLevel(user, achv)
   if (typeof achv.desc === 'string') {
     if (currentLevel) return
     user.achievement.push(id)
@@ -72,8 +74,8 @@ Session.prototype.achieve = function (this: Session<User.Field>, id, hints, achi
     }
   }
 
-  hints.push(`恭喜 ${user.name} 获得了成就「${this.app.achv.data[id].name}」！`)
-  app.emit('achievement/trigger', this, this.app.achv.data[id], hints)
+  hints.push(`恭喜 ${user.name} 获得了成就「${this.app.achievements.data[id].name}」！`)
+  app.emit('achievement/trigger', this, this.app.achievements.data[id], hints)
   return hints.join('\n')
 }
 
@@ -96,27 +98,26 @@ export default class AchvService extends Service {
   private achvMap: Dict<Achievement> = {}
   private categories: Category[] & Dict<Category> = [] as any
   public data: Achievement[] & Dict<Achievement> = [] as any
-  private fields = new Set<User.Field>(['achievement', 'name', 'flag'])
+  private fields = new Set<User.Field>(['achievement', 'name'])
 
   constructor(ctx: Context, private config: Config) {
-    super(ctx, 'achv', true)
+    super(ctx, 'achievements', true)
+
+    ctx.i18n.define('zh', require('./locales/zh'))
 
     ctx.model.extend('user', {
       achievement: 'list',
     })
 
-    ctx.command('adv/achievement [name]', '成就信息')
+    ctx.command('achievement [name]', '成就信息')
       .userFields(this.fields)
       .alias('achv')
-      .shortcut('查看成就')
-      .shortcut('我的成就')
-      .shortcut('成就', { fuzzy: true })
-      .option('achieved', '-a  显示已获得的成就')
-      .option('unachieved', '-A  显示未获得的成就')
-      .option('full', '-f  显示全部成就')
-      .option('forced', '-F  强制查看', { authority: 4, hidden: true })
-      .option('set', '-s  添加成就', { authority: 4 })
-      .option('unset', '-S  删除成就', { authority: 4 })
+      .option('achieved', '-a')
+      .option('unachieved', '-A')
+      .option('full', '-f')
+      .option('forced', '-F', { authority: 4, hidden: true })
+      .option('set', '-s', { authority: 4 })
+      .option('unset', '-S', { authority: 4 })
       .use(adminUser)
       .action(async ({ session, options, next }, ...names) => {
         const user = session.user
@@ -134,7 +135,7 @@ export default class AchvService extends Service {
         }
 
         const [key] = names
-        if (!key) return this.showCategories(user)
+        if (!key) return this.showCategories(session)
 
         if (key in this.catMap) {
           if (options.full) options.achieved = options.unachieved = true
@@ -145,13 +146,13 @@ export default class AchvService extends Service {
 
         const { forced } = options
         const achv = this.achvMap[key]
-        if (!achv) return next(`没有找到成就「${key}」。`)
+        if (!achv) return next(session.text('.not-found', [key]))
 
         const { name, affinity, desc, hidden, descHidden } = achv
         const currentLevel = this.getLevel(user, achv)
         const isHidden = !currentLevel && (typeof hidden === 'function' ? hidden(user) : hidden)
         if (isHidden && !forced) {
-          if (!options['pass']) return `没有找到成就「${key}」。`
+          if (!options['pass']) return session.text('.not-found', [key])
           return next()
         }
 
@@ -179,7 +180,7 @@ export default class AchvService extends Service {
       })
   }
 
-  async start() {
+  async getCount() {
     if (!this.data.length) return
     const result: Dict<number> = {}
     await Promise.all(this.data.map((achv) => {
@@ -187,7 +188,7 @@ export default class AchvService extends Service {
         result[id] = await this.ctx.database.eval(
           'user',
           { $count: 'id' },
-          { $and: [{ achievement: { $el: id } }, this.config.filter] }
+          { $and: [{ achievement: { $el: id } }, this.config.countFilter] }
         )
       }))
     }))
@@ -251,7 +252,7 @@ export default class AchvService extends Service {
     return !this.getLevel(user, achv) && this.getHidden(user, achv)
   }
 
-  public add<T extends User.Field = never>(achv: Achievement<T>, userFields: Iterable<T> = []) {
+  public register<T extends User.Field = never>(achv: Achievement<T>, userFields: Iterable<T> = []) {
     this.data.push(achv)
     defineProperty(this.data, achv.id, achv)
     if (typeof achv.name === 'string') {
@@ -264,7 +265,6 @@ export default class AchvService extends Service {
       achv.desc.forEach((desc, index) => {
         this.theoretical += achv.affinity
         const subAchv: Achievement.Standalone = Object.create(achv)
-        subAchv.count = 0
         subAchv.desc = desc
         subAchv.parent = achv
         subAchv.id = `${achv.id}-${index + 1}`
@@ -293,16 +293,17 @@ export default class AchvService extends Service {
     }
   }
 
-  private showCategories(user: User.Observed) {
+  private showCategories(session: Session<'name' | 'achievement'>) {
     let total = 0
+    const { user } = session
     const output = Object.values(this.categories).map(({ name, data }) => {
       const count = data.filter(achv => this.getLevel(user, achv)).length
       total += count
       return `${name} (${count}/${data.length})`
     })
 
-    output.unshift(`${user.name}，您已获得 ${total}/${this.data.length} 个成就，奖励好感度：${this.affinity(user)}`)
-    output.push('要查看特定的成就或分类，请输入“四季酱，成就 成就名/分类名”。')
+    output.unshift(session.text('.prolog', [user.name, total, this.data.length, this.affinity(user)]))
+    output.push(session.text('.epilog'))
     return output.join('\n')
   }
 
@@ -316,7 +317,7 @@ export default class AchvService extends Service {
         : children.map(({ name, count }) => `${name} (#${count})`).join(' => ')
     })
     output.unshift(`「${name}」\n成就总数：${data.length}，理论好感度：${theoretical}`)
-    output.push('要查看特定成就的取得条件，请输入“四季酱，成就 成就名”。')
+    output.push('要查看特定成就的取得条件，请输入“成就 成就名”。')
     return output.join('\n')
   }
 
